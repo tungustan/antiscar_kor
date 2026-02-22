@@ -1,167 +1,3 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>짭스카 시리즈 (세로비,한글자막)</title>
-
-<style>
-html, body {
-  margin:0; padding:0;
-  height:100vh; overflow:hidden;
-  background:black;
-  font-family:-apple-system,BlinkMacSystemFont,Arial;
-}
-
-/* 앱 컨테이너 */
-#app {
-  position:fixed; top:0; left:0;
-  width:100vw; height:100vh;
-  background:black; overflow:auto;
-  padding-bottom:20px;
-}
-
-/* 아카이브 */
-#archive {
-  padding:15px;
-}
-.archive-title {
-  font-size:20px;
-  font-weight:bold;
-  margin-bottom:15px;
-  color:white;
-  text-align:center;
-}
-
-/* 그리드 2열, 카드 가로형 */
-.grid {
-  display:grid;
-  grid-template-columns:repeat(2,1fr); /* 2열 고정 */
-  gap:10px;
-}
-.card {
-  width:100%;
-  aspect-ratio:4/3; /* 가로형 카드 */
-  border-radius:10px;
-  background:#111;
-  background-size:cover;
-  background-position:center;
-  cursor:pointer;
-  transition:transform .2s;
-}
-.card:active { transform:scale(.95); }
-
-/* 플레이어 */
-#playerScreen {
-  position:fixed; inset:0;
-  background:black;
-  display:none;
-  z-index:100;
-}
-video {
-  width:100%;
-  height:100%;
-  object-fit:contain;
-  background:black;
-}
-
-/* 뒤로가기 */
-.back {
-  position:absolute;
-  top:env(safe-area-inset-top,20px);
-  left:20px;
-  font-size:16px;
-  font-weight:bold;
-  color:white;
-  z-index:10;
-  cursor:pointer;
-}
-
-/* 컨트롤 */
-.controls {
-  position:absolute;
-  bottom:env(safe-area-inset-bottom,20px);
-  left:0;
-  width:100%;
-  padding:15px 10px 25px 10px;
-  box-sizing:border-box;
-  background:linear-gradient(to top, rgba(0,0,0,.9), transparent);
-  opacity:1;
-  transition:opacity 0.3s ease;
-}
-.controls.hide { opacity:0; pointer-events:none; }
-
-/* 시간 표시 */
-.time-display { color:white; font-size:12px; display:flex; justify-content:space-between; margin-bottom:5px; }
-
-/* 진행바 */
-input[type=range] {
-  width:100%; height:3px; -webkit-appearance:none; background:rgba(255,255,255,.3); margin-bottom:10px;
-}
-input[type=range]::-webkit-slider-thumb {
-  -webkit-appearance:none;
-  width:14px; height:14px; border-radius:50%; background:#e50914;
-}
-
-/* 버튼 영역 */
-.button-row {
-  display:flex; justify-content:center; gap:35px;
-}
-.btn {
-  width:50px; height:50px; border-radius:50%; background:rgba(255,255,255,.1);
-  display:flex; align-items:center; justify-content:center;
-  cursor:pointer; transition:transform .15s;
-}
-.btn:active { transform:scale(.9); }
-.btn svg { width:22px; height:22px; fill:white; }
-</style>
-</head>
-
-<body>
-<div id="app">
-  <div id="archive">
-    <div class="archive-title">짭스카 시리즈 (세로비,한글자막)</div>
-    <div class="grid" id="grid"></div>
-  </div>
-
-  <div id="playerScreen">
-    <div class="back" onclick="goBack()">← Back</div>
-    <video id="player" playsinline></video>
-
-    <div class="controls">
-      <div class="time-display">
-        <span id="currentTime">0:00</span> / <span id="totalTime">0:00</span>
-      </div>
-      <input type="range" id="progress" value="0" min="0" max="100">
-      <div class="button-row">
-        <div id="minusBtn" class="btn">
-          <svg viewBox="0 0 24 24">
-            <path d="M11 18V6l-8.5 6L11 18z"/>
-            <rect x="13" y="6" width="2" height="12"/>
-          </svg>
-        </div>
-
-        <div id="playBtn" class="btn">
-          <svg id="playIcon" viewBox="0 0 24 24">
-            <polygon points="8,5 19,12 8,19"/>
-          </svg>
-          <svg id="pauseIcon" viewBox="0 0 24 24" style="display:none">
-            <rect x="6" y="5" width="4" height="14"/>
-            <rect x="14" y="5" width="4" height="14"/>
-          </svg>
-        </div>
-
-        <div id="plusBtn" class="btn">
-          <svg viewBox="0 0 24 24">
-            <path d="M13 6v12l8.5-6L13 6z"/>
-            <rect x="9" y="6" width="2" height="12"/>
-          </svg>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
 <script>
 const pullZoneUrl="https://vz-af7f48b7-cd1.b-cdn.net";
 
@@ -208,6 +44,7 @@ const totalTimeEl = document.getElementById("totalTime");
 
 let currentIndex = 0;
 let hideTimer, controlsVisible = false;
+let nextVideo = document.createElement("video"); // 다음 영상 미리 로딩용
 
 // 카드 생성
 videos.forEach((v,i)=>{
@@ -218,6 +55,14 @@ videos.forEach((v,i)=>{
   grid.appendChild(card);
 });
 
+// 다음 영상 미리 로딩
+function preloadNext(index){
+  if(index < videos.length){
+    nextVideo.src = `${pullZoneUrl}/${videos[index]}/playlist.m3u8`;
+    nextVideo.preload = "auto";
+  }
+}
+
 // 영상 시작
 function startVideo(index){
   currentIndex=index;
@@ -225,6 +70,7 @@ function startVideo(index){
   document.getElementById("playerScreen").style.display="block";
   player.src = `${pullZoneUrl}/${videos[currentIndex]}/playlist.m3u8`;
   player.play();
+  preloadNext(currentIndex + 1); // 다음 영상 미리 로딩
   showControls();
   setTimeout(()=>window.scrollTo(0,1),100);
 }
@@ -281,11 +127,13 @@ function formatTime(sec){
   return `${m}:${s<10?'0'+s:s}`;
 }
 
-// 자동 다음
+// 자동 다음 (미리 로딩한 영상 활용)
 player.addEventListener("ended",()=>{
   if(currentIndex < videos.length-1){
     currentIndex++;
-    startVideo(currentIndex);
+    player.src = nextVideo.src; // 미리 로딩된 영상으로 바로 재생
+    player.play();
+    preloadNext(currentIndex + 1); // 또 다음 영상 미리 로딩
   }
 });
 
@@ -299,5 +147,3 @@ function showControls(){
 // iOS Safari 주소창 트릭
 window.addEventListener('load', ()=>{ setTimeout(()=>window.scrollTo(0,1),100); });
 </script>
-</body>
-</html>
