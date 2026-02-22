@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>짭스카 시리즈 (세로비,한글자막)</title>
+
+<style>
+html, body {
+  margin:0; padding:0;
+  height:100vh; overflow:hidden;
+  background:black;
+  font-family:-apple-system,BlinkMacSystemFont,Arial;
+}
+
+/* 앱 컨테이너 */
+#app {
+  position:fixed; top:0; left:0;
+  width:100vw; height:100vh;
+  background:black; overflow:auto;
+  padding-bottom:20px;
+}
+
+/* 아카이브 */
+#archive {
+  padding:15px;
+}
+.archive-title {
+  font-size:20px;
+  font-weight:bold;
+  margin-bottom:15px;
+  color:white;
+  text-align:center;
+}
+
+/* 그리드 2열, 카드 가로형 */
+.grid {
+  display:grid;
+  grid-template-columns:repeat(2,1fr); /* 2열 고정 */
+  gap:10px;
+}
+.card {
+  width:100%;
+  aspect-ratio:16/9; /* 가로형 카드 */
+  border-radius:10px;
+  background:#111;
+  background-size:cover;
+  background-position:center;
+  cursor:pointer;
+  transition:transform .2s;
+}
+.card:active { transform:scale(.95); }
+
+/* 플레이어 */
+#playerScreen {
+  position:fixed; inset:0;
+  background:black;
+  display:none;
+  z-index:100;
+}
+video {
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  background:black;
+}
+
+/* 뒤로가기 */
+.back {
+  position:absolute;
+  top:env(safe-area-inset-top,20px);
+  left:20px;
+  font-size:16px;
+  font-weight:bold;
+  color:white;
+  z-index:10;
+  cursor:pointer;
+}
+
+/* 컨트롤 */
+.controls {
+  position:absolute;
+  bottom:env(safe-area-inset-bottom,20px);
+  left:0;
+  width:100%;
+  padding:15px 10px 25px 10px;
+  box-sizing:border-box;
+  background:linear-gradient(to top, rgba(0,0,0,.9), transparent);
+  opacity:1;
+  transition:opacity 0.3s ease;
+}
+.controls.hide { opacity:0; pointer-events:none; }
+
+/* 시간 표시 */
+.time-display { color:white; font-size:12px; display:flex; justify-content:space-between; margin-bottom:5px; }
+
+/* 진행바 */
+input[type=range] {
+  width:100%; height:3px; -webkit-appearance:none; background:rgba(255,255,255,.3); margin-bottom:10px;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance:none;
+  width:14px; height:14px; border-radius:50%; background:#e50914;
+}
+
+/* 버튼 영역 */
+.button-row {
+  display:flex; justify-content:center; gap:35px;
+}
+.btn {
+  width:50px; height:50px; border-radius:50%; background:rgba(255,255,255,.1);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:transform .15s;
+}
+.btn:active { transform:scale(.9); }
+.btn svg { width:22px; height:22px; fill:white; }
+</style>
+</head>
+
+<body>
+<div id="app">
+  <div id="archive">
+    <div class="archive-title">Anti-Scar Series (Vertical,ENGSub)</div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div id="playerScreen">
+    <div class="back" onclick="goBack()">← Back</div>
+    <video id="player" playsinline></video>
+
+    <div class="controls">
+      <div class="time-display">
+        <span id="currentTime">0:00</span> / <span id="totalTime">0:00</span>
+      </div>
+      <input type="range" id="progress" value="0" min="0" max="100">
+      <div class="button-row">
+        <div id="minusBtn" class="btn">
+          <svg viewBox="0 0 24 24">
+            <path d="M11 18V6l-8.5 6L11 18z"/>
+            <rect x="13" y="6" width="2" height="12"/>
+          </svg>
+        </div>
+
+        <div id="playBtn" class="btn">
+          <svg id="playIcon" viewBox="0 0 24 24">
+            <polygon points="8,5 19,12 8,19"/>
+          </svg>
+          <svg id="pauseIcon" viewBox="0 0 24 24" style="display:none">
+            <rect x="6" y="5" width="4" height="14"/>
+            <rect x="14" y="5" width="4" height="14"/>
+          </svg>
+        </div>
+
+        <div id="plusBtn" class="btn">
+          <svg viewBox="0 0 24 24">
+            <path d="M13 6v12l8.5-6L13 6z"/>
+            <rect x="9" y="6" width="2" height="12"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const pullZoneUrl="https://vz-af7f48b7-cd1.b-cdn.net";
+
+const videos=[
+"b5f37dc2-c84b-4ada-8f63-784c3962fd22",
+"e95789df-e709-434e-be8c-fdd6969ef422",
+"4dfa8dfd-8fb0-4221-b365-fa1d1ca91eb4",
+"8433c51a-9960-4c05-8da8-181de255896f",
+"ea57f2ae-782e-44ef-85ea-81d291e3f419",
+"913a21e7-5485-4b48-ae3d-07f982bd7db5",
+"4841a0b8-e639-495e-b01c-1c240699d64f",
+"84d994ac-6200-4fc8-86db-53545aaf13d6",
+"a2f56369-33f9-43c1-a4d4-19839432475c",
+"caa50dae-6815-46bb-a5ea-e4815a96c255",
+"a5e91938-b766-4a22-a92d-f5daf35d0909",
+"38563343-d06c-4d59-b144-f0446e0c80ad",
+"cf1ec517-21b0-40ca-8326-5da315bd9e40",
+"1918cf05-914f-4567-a3bb-728bf83bde0b"
+];
+
+const posters=[
+"https://antiscar-poster.b-cdn.net/poster01.jpeg",
+"https://antiscar-poster.b-cdn.net/poster02.jpeg",
+"https://antiscar-poster.b-cdn.net/poster03.jpeg",
+"https://antiscar-poster.b-cdn.net/poster04.jpeg",
+"https://antiscar-poster.b-cdn.net/poster05.jpeg",
+"https://antiscar-poster.b-cdn.net/poster06.jpeg",
+"https://antiscar-poster.b-cdn.net/poster07.jpeg",
+"https://antiscar-poster.b-cdn.net/poster08.jpeg",
+"https://antiscar-poster.b-cdn.net/poster09.jpeg",
+"https://antiscar-poster.b-cdn.net/poster10.jpeg",
+"https://antiscar-poster.b-cdn.net/poster11.jpeg",
+"https://antiscar-poster.b-cdn.net/poster12.jpeg",
+"https://antiscar-poster.b-cdn.net/poster13.jpeg",
+"https://antiscar-poster.b-cdn.net/poster14toEnd.jpeg"
+];
+
+const grid = document.getElementById("grid");
+const player = document.getElementById("player");
+const playIcon = document.getElementById("playIcon");
+const pauseIcon = document.getElementById("pauseIcon");
+const controls = document.querySelector(".controls");
+const progress = document.getElementById("progress");
+const currentTimeEl = document.getElementById("currentTime");
+const totalTimeEl = document.getElementById("totalTime");
+
+let currentIndex = 0;
+let hideTimer, controlsVisible = false;
+
+// 카드 생성
+videos.forEach((v,i)=>{
+  const card=document.createElement("div");
+  card.className="card";
+  card.style.backgroundImage = `url(${posters[i]})`;
+  card.onclick = ()=>startVideo(i);
+  grid.appendChild(card);
+});
+
+// 영상 시작
+function startVideo(index){
+  currentIndex=index;
+  document.getElementById("archive").style.display="none";
+  document.getElementById("playerScreen").style.display="block";
+  player.src = `${pullZoneUrl}/${videos[currentIndex]}/playlist.m3u8`;
+  player.play();
+  showControls();
+  setTimeout(()=>window.scrollTo(0,1),100);
+}
+
+// 뒤로가기
+function goBack(){
+  player.pause();
+  document.getElementById("playerScreen").style.display="none";
+  document.getElementById("archive").style.display="block";
+  controlsVisible=false;
+}
+
+// 화면 터치 = 컨트롤 토글
+player.addEventListener("click",()=>{
+  if(!controlsVisible){ showControls(); controlsVisible=true; }
+  else togglePlay();
+});
+
+// 버튼 및 진행바
+document.getElementById("playBtn").onclick=togglePlay;
+document.getElementById("minusBtn").onclick=()=>{
+  player.currentTime=Math.max(0,player.currentTime-10); showControls();
+};
+document.getElementById("plusBtn").onclick=()=>{
+  player.currentTime=Math.min(player.duration,player.currentTime+10); showControls();
+};
+
+function togglePlay(){
+  player.paused?player.play():player.pause();
+  showControls();
+}
+
+// 아이콘 전환
+player.addEventListener("play",()=>{ playIcon.style.display="none"; pauseIcon.style.display="block"; });
+player.addEventListener("pause",()=>{ playIcon.style.display="block"; pauseIcon.style.display="none"; });
+
+// 시간 / 진행바 업데이트
+player.addEventListener("loadedmetadata",()=>{ totalTimeEl.textContent = formatTime(player.duration); });
+player.addEventListener("timeupdate",()=>{
+  if(player.duration){
+    progress.value = (player.currentTime/player.duration)*100;
+    currentTimeEl.textContent = formatTime(player.currentTime);
+  }
+});
+progress.oninput=()=>{
+  if(player.duration){
+    player.currentTime=(progress.value/100)*player.duration;
+    showControls();
+  }
+};
+
+function formatTime(sec){
+  const m = Math.floor(sec/60), s = Math.floor(sec%60);
+  return `${m}:${s<10?'0'+s:s}`;
+}
+
+// 자동 다음
+player.addEventListener("ended",()=>{
+  if(currentIndex < videos.length-1){
+    currentIndex++;
+    startVideo(currentIndex);
+  }
+});
+
+// 컨트롤 표시/숨김
+function showControls(){
+  controls.classList.remove("hide");
+  clearTimeout(hideTimer);
+  hideTimer=setTimeout(()=>{ controls.classList.add("hide"); controlsVisible=false; },3000);
+}
+
+// iOS Safari 주소창 트릭
+window.addEventListener('load', ()=>{ setTimeout(()=>window.scrollTo(0,1),100); });
+</script>
+</body>
+</html>
